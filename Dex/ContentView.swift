@@ -11,6 +11,7 @@ import CoreData
 struct ContentView: View {
   @Environment(\.managedObjectContext) private var viewContext
   
+  @FetchRequest<Pokemon>(sortDescriptors: []) private var allPokemon
   @FetchRequest<Pokemon>(
     sortDescriptors: [SortDescriptor(\.id)],
     animation: .default) private var pokedex
@@ -34,7 +35,7 @@ struct ContentView: View {
   }
   
   var body: some View {
-    if pokedex.isEmpty {
+    if allPokemon.isEmpty {
       ContentUnavailableView {
         Label("No pokemon", image: .nopokemon)
       } description: {
@@ -85,9 +86,20 @@ struct ContentView: View {
                   }
                 }
               }
+              .swipeActions(edge: .leading) {
+                Button(pokemon.favorite ? "Remove from favorites" : "Add to favorites", systemImage: "star") {
+                  pokemon.favorite.toggle()
+                  do {
+                    try viewContext.save()
+                  } catch {
+                    print(error)
+                  }
+                }
+                .tint(pokemon.favorite ? .gray : .yellow)
+              }
             }
           } footer: {
-            if pokedex.count < 151 {
+            if allPokemon.count < 151 {
               ContentUnavailableView {
                 Label("No pokemon", image: .nopokemon)
               } description: {
@@ -101,7 +113,7 @@ struct ContentView: View {
             }
           }
         }
-        .navigationTitle("Pokedex")
+        .navigationTitle("pokemon")
         .searchable(text: $searchText, prompt: "Find a Pokemon")
         .autocorrectionDisabled()
         .onChange(of: searchText) {
@@ -129,6 +141,7 @@ struct ContentView: View {
       }
     }
   }
+  
   private func getPokemon(from id: Int) {
     Task {
       for i in id..<152 {
