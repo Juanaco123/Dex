@@ -15,6 +15,7 @@ struct ContentView: View {
     sortDescriptors: [SortDescriptor(\.id)],
     animation: .default) private var pokedex
   @State private var searchText: String = ""
+  @State private var filterByFavorites: Bool = false
   
   private let fetcher = FetchService()
   private var dynamicPredicate: NSPredicate {
@@ -25,7 +26,9 @@ struct ContentView: View {
       predicates.append(NSPredicate(format: "name contains[c] %@", searchText))
     }
     // Filter by favorite predicate
-    
+    if filterByFavorites {
+      predicates.append(NSPredicate(format: "favorite == %d", true))
+    }
     // Combine predicates
     return NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
   }
@@ -44,8 +47,15 @@ struct ContentView: View {
             }
             .frame(width: 100, height: 100)
             VStack(alignment: .leading) {
-              Text(pokemon.name?.capitalized ?? "No name")
-                .fontWeight(.bold)
+              HStack {
+                Text(pokemon.name?.capitalized ?? "No name")
+                  .fontWeight(.bold)
+                
+                if pokemon.favorite {
+                  Image(systemName: "star.fill")
+                    .foregroundStyle(Color.yellow)
+                }
+              }
               HStack {
                 ForEach(pokemon.types ?? [], id: \.self) { type in
                   Text(type.capitalized)
@@ -68,16 +78,28 @@ struct ContentView: View {
       .onChange(of: searchText) {
         pokedex.nsPredicate = dynamicPredicate
       }
+      .onChange(of: filterByFavorites) {
+        pokedex.nsPredicate = dynamicPredicate
+      }
       .navigationDestination(for: Pokemon.self) { pokemon in
         Text(pokemon.name ?? "No name")
       }
       .toolbar {
         ToolbarItem {
-          Button("Add Item", systemImage: "star") {
+          Button {
+            filterByFavorites.toggle()
+          } label: {
+            Label(
+              "Filter by favorites",
+              systemImage: filterByFavorites ? "star.fill" : "star"
+            )
+          }
+          .tint(Color.yellow)
+        }
+        ToolbarItem {
+          Button("add", systemImage: "plus") {
             getPokemon()
           }
-          .buttonStyle(.plain)
-          .foregroundStyle(Color.yellow)
         }
       }
     }
