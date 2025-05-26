@@ -13,7 +13,7 @@ struct FetchService {
     case badResponse
   }
   
-  private let baseURL: URL = URL(string: "https://pokeapi.co/api/v2/pokemon/")!
+  private let baseURL: URL = URL(string: "https://pokeapi.co/api/v2/pokemon")!
   
   func fetchPokemon(_ id: Int) async throws -> FetchedPokemon {
     let fetchURL = baseURL.appending(path: String(id))
