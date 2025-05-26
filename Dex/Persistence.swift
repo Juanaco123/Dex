@@ -8,8 +8,10 @@
 import CoreData
 
 struct PersistenceController {
+  // The thing that controls our database
   static let shared = PersistenceController()
   
+  // The thing that controls our sample preview database
   @MainActor
   static let preview: PersistenceController = {
     let result = PersistenceController(inMemory: true)
@@ -35,8 +37,10 @@ struct PersistenceController {
     return result
   }()
   
+  // The thing that holds the stuff (the database)
   let container: NSPersistentContainer
   
+  // Just a regular init function
   init(inMemory: Bool = false) {
     container = NSPersistentContainer(name: "Dex")
     if inMemory {
@@ -44,9 +48,10 @@ struct PersistenceController {
     }
     container.loadPersistentStores(completionHandler: { (storeDescription, error) in
       if let error = error as NSError? {
-        fatalError("Unresolved error \(error), \(error.userInfo)")
+        print("🛑 \(error)")
       }
     })
+    container.viewContext.mergePolicy = NSMergePolicy.mergeByPropertyStoreTrump
     container.viewContext.automaticallyMergesChangesFromParent = true
   }
 }
