@@ -123,7 +123,8 @@ struct ContentView: View {
           pokedex.nsPredicate = dynamicPredicate
         }
         .navigationDestination(for: Pokemon.self) { pokemon in
-          Text(pokemon.name ?? "No name")
+          PokemonDetail()
+            .environmentObject(pokemon)
         }
         .toolbar {
           ToolbarItem {
