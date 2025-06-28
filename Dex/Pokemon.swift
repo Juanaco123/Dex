@@ -1,24 +1,31 @@
 //
-//  FetchedPokemon.swift
+//  Pokemon.swift
 //  Dex
 //
-//  Created by Juan Camilo Victoria Pacheco on 26/05/25.
+//  Created by Juan Camilo Victoria Pacheco on 28/06/25.
+//
 //
 
+import SwiftUI
+import SwiftData
 import Foundation
 
-struct FetchedPokemon: Decodable {
-  var id: Int16
+@Model
+class Pokemon: Decodable {
+  @Attribute(.unique) var id: Int
   var name: String
-  let types: [String]
-  var hp: Int16
-  var attack: Int16
-  var defense: Int16
-  var specialAttack: Int16
-  var specialDefense: Int16
-  var speed: Int16
+  var types: [String]
+  var hp: Int
+  var attack: Int
+  var defense: Int
+  var specialAttack: Int
+  var specialDefense: Int
+  var speed: Int
   var spriteURL: URL
   var shinyURL: URL
+  var shiny: Data?
+  var sprite: Data?
+  var favorite: Bool = false
   
   enum CodingKeys: CodingKey {
     case id
@@ -45,10 +52,10 @@ struct FetchedPokemon: Decodable {
     }
   }
   
-  init(from decoder: any Decoder) throws {
+  required init(from decoder: any Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     
-    id = try container.decode(Int16.self, forKey: .id)
+    id = try container.decode(Int.self, forKey: .id)
     name = try container.decode(String.self, forKey: .name)
     var decodedTypes: [String] = []
     var typesContainer = try container.nestedUnkeyedContainer(forKey: .types)
@@ -67,13 +74,13 @@ struct FetchedPokemon: Decodable {
     
     types = decodedTypes
     
-    var decodedStats: [Int16] = []
+    var decodedStats: [Int] = []
     var statsContainer = try container.nestedUnkeyedContainer(forKey: .stats)
     while !statsContainer.isAtEnd {
       // Decode types
       let statsDictionaryContainer = try statsContainer.nestedContainer(keyedBy: CodingKeys.StatDictionaryKeys.self)
       
-      let stat = try statsDictionaryContainer.decode(Int16.self, forKey: .baseStat)
+      let stat = try statsDictionaryContainer.decode(Int.self, forKey: .baseStat)
       decodedStats.append(stat)
     }
     hp = decodedStats[0]
@@ -87,4 +94,65 @@ struct FetchedPokemon: Decodable {
     spriteURL = try spritesContainer.decode(URL.self, forKey: .spriteURL)
     shinyURL = try spritesContainer.decode(URL.self, forKey: .shinyURL)
   }
+  
+  var spriteImage: Image {
+    if let data = sprite,
+       let image = UIImage(data: data) {
+      Image(uiImage: image)
+    } else {
+      Image(.bulbasaur)
+    }
+  }
+  
+  var shinyImage: Image {
+    if let data = shiny,
+       let image = UIImage(data: data) {
+      Image(uiImage: image)
+    } else {
+      Image(.shinybulbasaur)
+    }
+  }
+  
+  var background: ImageResource {
+    switch types[0] {
+    case "rock", "ground", "steel", "fighting", "ghost", "dark", "psychic":
+        .rockgroundsteelfightingghostdarkpsychic
+    case "fire", "dragon":
+        .firedragon
+    case "fly", "bug":
+        .flyingbug
+    case "ice":
+        .ice
+    case "water":
+        .water
+    default:
+        .normalgrasselectricpoisonfairy
+    }
+  }
+  
+  var typeColor: Color {
+    Color(types[0].capitalized)
+  }
+  
+  var stats: [Stat] {
+    [
+      Stat(id: 1, name: "HP", value: hp),
+      Stat(id: 2, name: "Attack", value: attack),
+      Stat(id: 3, name: "Defense", value: defense),
+      Stat(id: 4, name: "Special Attack", value: specialAttack),
+      Stat(id: 5, name: "Special Defense", value: specialDefense),
+      Stat(id: 6, name: "Speed", value: speed)
+    ]
+  }
+  
+  var highestStat: Stat {
+    stats.max { $0.value < $1.value}!
+  }
+  
+  struct Stat: Identifiable {
+    let id: Int
+    let name: String
+    let value: Int
+  }
+  
 }
