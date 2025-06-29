@@ -6,15 +6,13 @@
 //
 
 import SwiftUI
-import CoreData
+import SwiftData
 
 struct ContentView: View {
-  @Environment(\.managedObjectContext) private var viewContext
+  @Environment(\.modelContext) private var modelContext
   
-  @FetchRequest<Pokemon>(sortDescriptors: []) private var allPokemon
-  @FetchRequest<Pokemon>(
-    sortDescriptors: [SortDescriptor(\.id)],
-    animation: .default) private var pokedex
+  @Query(sort: \Pokemon.id, animation: .default) private var pokedex: [Pokemon]
+  
   @State private var searchText: String = ""
   @State private var filterByFavorites: Bool = false
   
@@ -35,7 +33,7 @@ struct ContentView: View {
   }
   
   var body: some View {
-    if allPokemon.isEmpty {
+    if pokedex.isEmpty {
       ContentUnavailableView {
         Label("No pokemon", image: .nopokemon)
       } description: {
@@ -47,7 +45,7 @@ struct ContentView: View {
         .buttonStyle(.borderedProminent)
         
       }
-
+      
     } else {
       NavigationStack {
         List {
@@ -71,7 +69,7 @@ struct ContentView: View {
                 }
                 VStack(alignment: .leading) {
                   HStack {
-                    Text(pokemon.name?.capitalized ?? "No name")
+                    Text(pokemon.name)
                       .fontWeight(.bold)
                     
                     if pokemon.favorite {
@@ -80,7 +78,7 @@ struct ContentView: View {
                     }
                   }
                   HStack {
-                    ForEach(pokemon.types ?? [], id: \.self) { type in
+                    ForEach(pokemon.types, id: \.self) { type in
                       Text(type.capitalized)
                         .font(.subheadline)
                         .fontWeight(.semibold)
@@ -97,7 +95,7 @@ struct ContentView: View {
                 Button(pokemon.favorite ? "Remove from favorites" : "Add to favorites", systemImage: "star") {
                   pokemon.favorite.toggle()
                   do {
-                    try viewContext.save()
+                    try modelContext.save()
                   } catch {
                     print(error)
                   }
@@ -106,7 +104,7 @@ struct ContentView: View {
               }
             }
           } footer: {
-            if allPokemon.count < 151 {
+            if pokedex.count < 151 {
               ContentUnavailableView {
                 Label("No pokemon", image: .nopokemon)
               } description: {
@@ -123,15 +121,8 @@ struct ContentView: View {
         .navigationTitle("pokemon")
         .searchable(text: $searchText, prompt: "Find a Pokemon")
         .autocorrectionDisabled()
-        .onChange(of: searchText) {
-          pokedex.nsPredicate = dynamicPredicate
-        }
-        .onChange(of: filterByFavorites) {
-          pokedex.nsPredicate = dynamicPredicate
-        }
         .navigationDestination(for: Pokemon.self) { pokemon in
-          PokemonDetail()
-            .environmentObject(pokemon)
+          PokemonDetail(pokemon: pokemon)
         }
         .toolbar {
           ToolbarItem {
@@ -155,20 +146,7 @@ struct ContentView: View {
       for i in id..<152 {
         do {
           let fetchedPokemon = try await fetcher.fetchPokemon(i)
-          let pokemon = Pokemon(context: viewContext)
-          pokemon.id = fetchedPokemon.id
-          pokemon.name = fetchedPokemon.name
-          pokemon.types = fetchedPokemon.types
-          pokemon.hp = fetchedPokemon.hp
-          pokemon.attack = fetchedPokemon.attack
-          pokemon.defense = fetchedPokemon.defense
-          pokemon.specialAttack = fetchedPokemon.specialAttack
-          pokemon.specialDefense = fetchedPokemon.specialDefense
-          pokemon.speed = fetchedPokemon.speed
-          pokemon.spriteURL = fetchedPokemon.spriteURL
-          pokemon.shinyURL = fetchedPokemon.shinyURL
-          
-          try viewContext.save()
+          modelContext.insert(fetchedPokemon)
         } catch {
           print(error)
         }
@@ -181,14 +159,11 @@ struct ContentView: View {
   private func storeSprites() {
     Task {
       do {
-        for pokemon in allPokemon {
-          if let spriteURL = pokemon.spriteURL,
-             let shinyURL = pokemon.shinyURL {
-            pokemon.sprite = try await URLSession.shared.data(from: spriteURL).0
-            pokemon.shiny = try await URLSession.shared.data(from: shinyURL).0
-            
-            try viewContext.save()
-          }
+        for pokemon in pokedex {
+          pokemon.sprite = try await URLSession.shared.data(from: pokemon.spriteURL).0
+          pokemon.shiny = try await URLSession.shared.data(from: pokemon.shinyURL).0
+          
+          try modelContext.save()
         }
       } catch {
         print("🛑 \(error)")
@@ -198,5 +173,6 @@ struct ContentView: View {
 }
 
 #Preview {
-  ContentView().environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+  ContentView()
+    .modelContainer(PersistenceController.preview)
 }
