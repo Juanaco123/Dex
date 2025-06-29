@@ -23,8 +23,8 @@ class Pokemon: Decodable {
   var speed: Int
   var spriteURL: URL
   var shinyURL: URL
-  var shiny: Data?
   var sprite: Data?
+  var shiny: Data?
   var favorite: Bool = false
   
   enum CodingKeys: CodingKey {
