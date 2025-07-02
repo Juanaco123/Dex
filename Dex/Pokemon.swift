@@ -42,13 +42,13 @@ class Pokemon: Decodable {
       }
     }
     
-    enum StatDictionaryKeys: String, CodingKey {
-      case baseStat = "base_stat"
+    enum StatDictionaryKeys: CodingKey {
+      case baseStat
     }
     
     enum SpriteDictionaryKeys: String, CodingKey {
-      case spriteURL = "front_default"
-      case shinyURL = "front_shiny"
+      case spriteURL = "frontDefault"
+      case shinyURL = "frontShiny"
     }
   }
   

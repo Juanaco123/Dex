@@ -23,6 +23,7 @@ struct FetchService {
       throw FetchError.badResponse
     }
     let decoder: JSONDecoder = JSONDecoder()
+    decoder.keyDecodingStrategy = .convertFromSnakeCase
     let pokemon = try decoder.decode(Pokemon.self, from: data)
     print("Fetched pokemon: \(pokemon.id): \(pokemon.name.capitalized)")
     return pokemon
